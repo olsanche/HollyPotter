@@ -130,7 +130,8 @@ def main():
         im=webcam.get_image()
         pg_img = pygame.image.frombuffer(im.tostring(), im.size, im.mode)
 
-        # Affiche l'image de la webcan
+        # Affiche l'image de la webcam
+
         screen.blit(pg_img, (0,0))
         # Affiche l'image du chapeau en bas au centre
         screen.blit(imHat,(width/2-imHat.get_width()/2,height-imHat.get_height()))
