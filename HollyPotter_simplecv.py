@@ -1,6 +1,36 @@
 from SimpleCV import *
 import os
 
+class MyObject:
+
+    def setColor(self,color):
+        self.m_pixColor=color
+
+    def setImage(self,img):
+        self.m_img=img
+
+    def setThresh(self,thresh):
+        self.m_thresh=thresh
+
+    def getCentroid(self):
+        img2=self.m_img.morphOpen().hueDistance(self.m_pixColor).binarize(self.m_thresh)
+
+        # Recup?rtion de tous les blobs
+        blobs = img2.findBlobs()
+
+        if blobs:
+            for b in blobs:
+                if b.area()>500:
+                    b.draw(color=Color.PUCE, width=3)
+                    centroid=b.centroid()
+
+        return centroid
+
+
+    def getRect(self):
+        pass
+
+
 def main():
 
     cam = Camera() #initialize the camera
@@ -23,50 +53,45 @@ def main():
     pixColor=Color.RED
 
     done = False # setup boolean to stop the program
-    thresh=35
-
+    thresh=10
+    myObject=MyObject()
+    myObject.setColor(pixColor)
+    myObject.setThresh(thresh)
     # Boucle principalw
     while not display.isDone():
             img=cam.getImage().flipHorizontal()
-
+            myObject.setImage(img)
             # Gestion des evenements
 
             # Clique Gauche: R?cup?re la couleur de l'objet ? traquer
             if display.mouseLeft:
                     print "Position = "+repr(display.mouseX)+","+repr(display.mouseY)
-                    pixColor=img[display.mouseX,display.mouseY]
+                    myObject.setColor(img[display.mouseX,display.mouseY])
 
             # Molette: Augmente ou diminue le Threshold
             if display.mouseWheelDown:
                     if thresh>0:
                             thresh-=1
+                            myObject.setThresh(thresh)
                             print "Thresh = "+repr(thresh)
             if display.mouseWheelUp:
                     if thresh<255:
                             thresh+=1
+                            myObject.setThresh(thresh)
                             print "Thresh = "+repr(thresh)
 
             # Detection du visage
-            imgface=img.scale(0.25)
-            faces = imgface.findHaarFeatures("face") # load in trained face file
-            if faces:
-                face = faces[-1]
-                imgWizard= wizard_hat.resize(face.width()*4+200,face.height()*4+200) #load the image to super impose and scale it correctly
-                mymask = imgWizard.colorDistance(color=Color.WHITE)
-
-                # Place le chapeau
-                posWizard=((face.topLeftCorner()[0])*4-100,(face.topLeftCorner()[1])*4-imgWizard.size()[1]+40)
-                img = img.blit(imgWizard, posWizard,alphaMask=mymask)
-                faceROI=face.crop()
-                # Detection des yeux
-##                eyes = faceROI.findHaarFeatures("eye")
+##            imgface=img.scale(0.25)
+##            faces = imgface.findHaarFeatures("face") # load in trained face file
+##            if faces:
+##                face = faces[-1]
+##                imgWizard= wizard_hat.resize(face.width()*4+200,face.height()*4+200) #load the image to super impose and scale it correctly
+##                mymask = imgWizard.colorDistance(color=Color.WHITE)
 ##
-##                if eyes:
-##
-##                    eye=eyes[0]
-##                    print eye.coordinates()
-##                    img.dl().circle((eye.coordinates()),10,Color.WHITE,2)
-
+##                # Place le chapeau
+##                posWizard=((face.topLeftCorner()[0])*4-100,(face.topLeftCorner()[1])*4-imgWizard.size()[1]+40)
+##                img = img.blit(imgWizard, posWizard,alphaMask=mymask)
+##                faceROI=face.crop()
 
 
             x=img.size()[0]/2-imHat.size()[0]/2
@@ -79,22 +104,10 @@ def main():
             # A partir de l'image source, on cr?e une morphologie de type "OPEN"
             # Ensuite on r?cup?re l'ensemble des pixels correspondant ? la couleur recherch?
             # puis on cr?e l'image binaire avec le Threshold
-            img2=img.morphOpen().hueDistance(pixColor).binarize(35)
+            centroid=myObject.getCentroid()
 
-            # Recup?rtion de tous les blobs
-            blobs = img2.findBlobs()
-
-            if blobs:
-                    for b in blobs:
-                            if b.area()>500:
-                                    b.draw(color=Color.PUCE, width=3)
-                    #img.sideBySide(img2)
-                                    img.addDrawingLayer(img2.dl())
-                                    img.dl().circle(b.centroid(),10,Color.RED)
-                                    #img.dl().text("Position: "+repr(b.centroid()),(0,10),Color.GREEN)
-                                    if b.centroid()[0]>x and b.centroid()[0]<x+imHat.size()[0] and b.centroid()[1]>img.size()[1]-imHat.size()[1]:
-                                        img=img.blit(imRabbit,pos=(img.size()[0]/2-imRabbit.size()[0]/2,img.size()[1]-imRabbit.size()[1]-150),alphaMask=amaskg)
-
+            if centroid[0]>x and centroid[0]<x+imHat.size()[0] and centroid[1]>img.size()[1]-imHat.size()[1]:
+                img=img.blit(imRabbit,pos=(img.size()[0]/2-imRabbit.size()[0]/2,img.size()[1]-imRabbit.size()[1]-150),alphaMask=amaskg)
             # Affichage
             #img3=img.sideBySide(image)
             img.save(display)
